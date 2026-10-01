@@ -52,9 +52,13 @@ df["レース識別用コード"] = df["日付"].astype('str') + df["場所"] + 
 
 df = df.drop(columns='日付')
 
+# ------後でやるとごちゃるので特例---------------------------
+df["乗り替わり"] = (df["騎手"] != df["前騎手"]).astype(int)
+# ---------------------------------------------------------
 
 categories_dict = {}
 for one_hot_encoding_col_name in one_hot_encoding_col_name_list:
+    print(one_hot_encoding_col_name)
     # 各項目に対し一意の要素名を保持しておく（新規予測用）
     categories = list(set(df[one_hot_encoding_col_name].tolist()))
     categories_dict[one_hot_encoding_col_name] = categories

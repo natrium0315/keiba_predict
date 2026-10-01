@@ -25,11 +25,9 @@ def pre_process_data(target_data_path):
     use_col_name_list = list(df.columns.values)
     # 使用しない項目を削除
     use_col_name_list.remove("種牡馬")
-    use_col_name_list.remove("騎手")
     use_col_name_list.remove("調教師")
     use_col_name_list.remove("同場")
-    use_col_name_list.remove("前走開催")  
-    use_col_name_list.remove("前走騎手")    
+    use_col_name_list.remove("前走開催")   
     # 使用項目の絞込
     df = df.loc[:, use_col_name_list]
     # print(df.head(5))
@@ -150,6 +148,10 @@ def process_data(target_data_path):
 
     df = df.fillna(0)
 
+    # ------後でやるとごちゃるので特例---------------------------
+    df["乗り替わり"] = (df["騎手"] != df["前騎手"]).astype(int)
+    # ---------------------------------------------------------
+
     def convert_race_number(race_number):
         return str(race_number).zfill(2)  # レース番号を0埋めして2桁にそろえる
     df["レース識別用コード"] = df["日付"].astype('str') + df["場所"] + df["Ｒ"].apply(convert_race_number)
@@ -234,7 +236,6 @@ def process_data(target_data_path):
 
 def make_feature_value():
     df = pd.read_csv("proceed_data.csv", encoding='cp932')
-    df = df.sort_values(["レース識別用コード", "単勝オッズ"])
 
     df["距離変化量"] = (df["距離"] - df["前距離"]).where(df["前距離"] > 0)
 
@@ -246,9 +247,18 @@ def make_feature_value():
 
     df["昇格戦"] = (df["前クラス名"] < df["クラス名"]).astype(int)
 
-    same_race = df["レース識別用コード"] == df["レース識別用コード"].shift(-1)
-    df["オッズ比"] = (df["単勝オッズ"].shift(-1) / df["単勝オッズ"]).where(same_race)
+    places = ["東京", "中山", "阪神", "京都", "中京",
+          "小倉", "新潟", "福島", "札幌", "函館"]
 
+    df["前走同場"] = 0
+
+    for place in places:
+        df.loc[
+            (df[f"場所_{place}"] == 1) &
+            (df[f"前走場所_{place}"] == 1),
+            "前走同場"
+        ] = 1
+    
     df.to_csv("proceed_data2.csv", encoding='cp932', index=False)
     print("3.特徴量作成完了")
 
@@ -270,13 +280,17 @@ def predict():
 
     df["予測値"] = predict_val[:,1]
 
-    for race_id in race_id_code_list:
-        race_df = df[df["レース識別用コード"] == race_id]
+    with open("result.txt", "w", encoding="utf-8")as f:
+        for race_id in race_id_code_list:
+            race_df = df[df["レース識別用コード"] == race_id]
 
-        top3 = race_df.sort_values("予測値", ascending=False).head(9)
+            top = race_df.sort_values("予測値", ascending=False)
 
-        print(f"\nレース: {race_id}")
-        print(top3[["馬名", "予測値"]])
+            f.write(f"レース: {race_id}\n")
+            for _, r in top.iterrows():
+                f.write(
+                    f'予測:{r["馬番"]}:{r["馬名"]}:{r["予測値"]}\n'
+                )
 
 
 
