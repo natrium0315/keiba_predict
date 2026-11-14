@@ -3,6 +3,7 @@
 *.xlsx
 *.pkl
 *.model
+*.txt
 categories_dict.dict
 __pycache__/
 venv/
