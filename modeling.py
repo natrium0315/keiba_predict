@@ -49,8 +49,8 @@ joblib.dump(
     "columns.pkl"
 )
 
-output_symbol = "3着以内"
-#output_symbol = "勝利"
+#output_symbol = "3着以内"
+output_symbol = "勝利"
 column_name_list_output = [output_symbol]
 
 
@@ -151,7 +151,7 @@ model = LGBMClassifier(
 
 model.fit(np_train_input, np_train_output)
 
-pickle.dump(model, open("lgbm.model", 'wb'))
+pickle.dump(model, open("solo_lgbm.model", 'wb'))
 
 
 
